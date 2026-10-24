@@ -1,0 +1,1 @@
+"use client";import {useRouter} from "next/navigation";export function MarkRead({id}:{id:string}){const router=useRouter();return <button className="btn btn-outline" onClick={async()=>{await fetch(`/api/notifications/${id}`,{method:"PATCH"});router.refresh()}}>Mark read</button>}

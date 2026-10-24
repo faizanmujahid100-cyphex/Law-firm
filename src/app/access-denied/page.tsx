@@ -1,0 +1,1 @@
+import Link from "next/link";export default function Page(){return <main className="container section"><h1 className="serif" style={{fontSize:44}}>Access denied</h1><p>You do not have permission to view this page.</p><Link className="btn btn-primary" href="/">Return home</Link></main>}

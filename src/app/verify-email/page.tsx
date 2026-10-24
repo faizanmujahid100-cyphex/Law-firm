@@ -1,0 +1,1 @@
+import { Suspense } from "react";import {AuthForm} from "@/components/auth-form";import {PublicHeader,PublicFooter} from "@/components/public-shell";export default function Page(){return <><PublicHeader/><main className="container section"><Suspense><AuthForm mode="verify"/></Suspense></main><PublicFooter/></>}
