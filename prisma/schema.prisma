@@ -1,0 +1,375 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role { ADMIN TEAM CLIENT }
+enum ApplicationStatus { DRAFT SUBMITTED UNDER_REVIEW DOCUMENTS_REQUIRED APPROVED IN_PROGRESS AWAITING_REVIEW COMPLETED REJECTED CANCELLED }
+enum TaskStatus { QUEUED ASSIGNED ACCEPTED IN_PROGRESS REVIEW COMPLETED CANCELLED }
+enum DocumentStatus { PENDING APPROVED REJECTED }
+enum PaymentStatus { PENDING VERIFIED REJECTED REFUNDED }
+
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  passwordHash String
+  name String
+  phone String?
+  role Role @default(CLIENT)
+  active Boolean @default(true)
+  emailVerifiedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sessions Session[]
+  tokens AuthToken[]
+  clientProfile ClientProfile?
+  teamProfile TeamProfile?
+  applications Application[] @relation("ClientApplications")
+  assignedTasks Task[] @relation("TaskAssignee")
+  notifications Notification[]
+  documents Document[] @relation("UploadedDocuments")
+  cases LegalCase[] @relation("CaseClient")
+  auditLogs AuditLog[]
+}
+
+model Session {
+  id String @id @default(cuid())
+  tokenHash String @unique
+  userId String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, expiresAt])
+}
+
+model AuthToken {
+  id String @id @default(cuid())
+  tokenHash String @unique
+  userId String
+  purpose String
+  expiresAt DateTime
+  usedAt DateTime?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, purpose])
+}
+
+model ClientProfile {
+  id String @id @default(cuid())
+  userId String @unique
+  address String?
+  city String?
+  district String?
+  province String?
+  dateOfBirth DateTime?
+  profession String?
+  user User @relation(fields: [userId], references: [id])
+}
+
+model TeamProfile {
+  id String @id @default(cuid())
+  userId String @unique
+  title String
+  bio String?
+  qualifications String?
+  practiceAreas String[]
+  publicApproved Boolean @default(false)
+  permissions String[]
+  user User @relation(fields: [userId], references: [id])
+}
+
+model ServiceCategory {
+  id String @id @default(cuid())
+  name String @unique
+  slug String @unique
+  services Service[]
+}
+
+model Service {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  summary String
+  description String @db.Text
+  categoryId String?
+  category ServiceCategory? @relation(fields: [categoryId], references: [id])
+  published Boolean @default(false)
+  featured Boolean @default(false)
+  feePkr Int?
+  governmentFeeNote String?
+  estimate String?
+  jurisdiction String?
+  sourceUrl String?
+  reviewedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  versions ServiceVersion[]
+  applications Application[]
+  @@index([published, featured])
+}
+
+model ServiceVersion {
+  id String @id @default(cuid())
+  serviceId String
+  version Int
+  form Json
+  requirements Json
+  workflow Json
+  createdAt DateTime @default(now())
+  service Service @relation(fields: [serviceId], references: [id])
+  applications Application[]
+  @@unique([serviceId, version])
+}
+
+model Application {
+  id String @id @default(cuid())
+  reference String @unique
+  clientId String
+  serviceId String
+  versionId String
+  status ApplicationStatus @default(DRAFT)
+  data Json
+  priority Int @default(2)
+  dueAt DateTime?
+  submittedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client User @relation("ClientApplications", fields: [clientId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+  version ServiceVersion @relation(fields: [versionId], references: [id])
+  history ApplicationStatusHistory[]
+  tasks Task[]
+  documents Document[]
+  invoices Invoice[]
+  notes ApplicationNote[]
+  @@index([clientId, status])
+  @@index([status, createdAt])
+}
+
+model ApplicationStatusHistory {
+  id String @id @default(cuid())
+  applicationId String
+  fromStatus ApplicationStatus?
+  toStatus ApplicationStatus
+  actorId String
+  note String?
+  clientVisible Boolean @default(true)
+  createdAt DateTime @default(now())
+  application Application @relation(fields: [applicationId], references: [id])
+  @@index([applicationId, createdAt])
+}
+
+model ApplicationNote {
+  id String @id @default(cuid())
+  applicationId String
+  authorId String
+  body String @db.Text
+  clientVisible Boolean @default(false)
+  createdAt DateTime @default(now())
+  application Application @relation(fields: [applicationId], references: [id])
+}
+
+model Task {
+  id String @id @default(cuid())
+  title String
+  instructions String @db.Text
+  applicationId String?
+  assigneeId String?
+  status TaskStatus
+  eligibleRoles String[]
+  priority Int @default(2)
+  dueAt DateTime?
+  estimatedMinutes Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  application Application? @relation(fields: [applicationId], references: [id])
+  assignee User? @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  history TaskAssignmentHistory[]
+  comments TaskComment[]
+  documents Document[]
+  @@index([status, assigneeId])
+}
+
+model TaskAssignmentHistory {
+  id String @id @default(cuid())
+  taskId String
+  actorId String
+  fromAssigneeId String?
+  toAssigneeId String?
+  action String
+  reason String?
+  createdAt DateTime @default(now())
+  task Task @relation(fields: [taskId], references: [id])
+}
+
+model TaskComment {
+  id String @id @default(cuid())
+  taskId String
+  authorId String
+  body String @db.Text
+  createdAt DateTime @default(now())
+  task Task @relation(fields: [taskId], references: [id])
+}
+
+model Document {
+  id String @id @default(cuid())
+  storageKey String @unique
+  filename String
+  mimeType String
+  size Int
+  category String
+  status DocumentStatus @default(PENDING)
+  uploaderId String
+  applicationId String?
+  taskId String?
+  caseId String?
+  createdAt DateTime @default(now())
+  uploader User @relation("UploadedDocuments", fields: [uploaderId], references: [id])
+  application Application? @relation(fields: [applicationId], references: [id])
+  task Task? @relation(fields: [taskId], references: [id])
+  legalCase LegalCase? @relation(fields: [caseId], references: [id])
+  @@index([applicationId])
+}
+
+model LegalCase {
+  id String @id @default(cuid())
+  reference String @unique
+  title String
+  type String
+  court String?
+  jurisdiction String?
+  status String
+  clientId String
+  advocateId String?
+  filedAt DateTime?
+  nextHearingAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client User @relation("CaseClient", fields: [clientId], references: [id])
+  parties CaseParty[]
+  hearings Hearing[]
+  documents Document[]
+  @@index([clientId, status])
+}
+
+model CaseParty {
+  id String @id @default(cuid())
+  caseId String
+  name String
+  role String
+  legalCase LegalCase @relation(fields: [caseId], references: [id])
+}
+
+model Hearing {
+  id String @id @default(cuid())
+  caseId String
+  date DateTime
+  notes String?
+  orderSummary String?
+  legalCase LegalCase @relation(fields: [caseId], references: [id])
+  @@index([date])
+}
+
+model Invoice {
+  id String @id @default(cuid())
+  number String @unique
+  applicationId String
+  amountPkr Int
+  dueAt DateTime?
+  status String @default("OPEN")
+  createdAt DateTime @default(now())
+  application Application @relation(fields: [applicationId], references: [id])
+  payments Payment[]
+}
+
+model Payment {
+  id String @id @default(cuid())
+  invoiceId String
+  amountPkr Int
+  method String
+  reference String?
+  status PaymentStatus @default(PENDING)
+  recordedById String
+  verifiedById String?
+  verifiedAt DateTime?
+  createdAt DateTime @default(now())
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+}
+
+model Expense {
+  id String @id @default(cuid())
+  description String
+  amountPkr Int
+  incurredAt DateTime
+  caseId String?
+  applicationId String?
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id String @id @default(cuid())
+  userId String
+  title String
+  body String
+  href String?
+  readAt DateTime?
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id])
+  @@index([userId, readAt])
+}
+
+model ContactMessage {
+  id String @id @default(cuid())
+  name String
+  email String
+  phone String?
+  message String @db.Text
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+  actorId String?
+  action String
+  entity String
+  entityId String
+  metadata Json?
+  createdAt DateTime @default(now())
+  actor User? @relation(fields: [actorId], references: [id])
+  @@index([entity, entityId, createdAt])
+}
+
+model FirmSettings {
+  id String @id @default("default")
+  name String @default("Amanah Legal")
+  tagline String @default("Clarity for every legal step")
+  about String @db.Text @default("")
+  mission String @db.Text @default("")
+  address String @default("")
+  phone String @default("")
+  email String @default("")
+  hours String @default("")
+  privacy String @db.Text @default("")
+  terms String @db.Text @default("")
+  disclaimer String @db.Text @default("")
+  updatedAt DateTime @updatedAt
+}
+
+model FAQ {
+  id String @id @default(cuid())
+  question String
+  answer String @db.Text
+  published Boolean @default(false)
+  sortOrder Int @default(0)
+}
+
+model Testimonial {
+  id String @id @default(cuid())
+  name String
+  quote String @db.Text
+  published Boolean @default(false)
+  sortOrder Int @default(0)
+}
