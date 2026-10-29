@@ -5,13 +5,13 @@ import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { browserAuth } from "@/lib/firebase/client";
 
 type Values = { name: string; phone: string; password: string };
-export function ProfileForm({ name, phone, email }: { name: string; phone: string; email: string }) {
+export function ProfileForm({ name, phone, email, demo = false }: { name: string; phone: string; email: string; demo?: boolean }) {
   const { register, handleSubmit } = useForm<Values>({ defaultValues: { name, phone, password: "" } });
   const [message, setMessage] = useState("");
   return <form className="card" style={{ padding: 24, display: "grid", gap: 14 }} onSubmit={handleSubmit(async values => {
     try {
       let idToken: string | undefined;
-      if (values.name !== name) {
+      if (values.name !== name && !demo) {
         if (!values.password) throw new Error("Enter your current password to change your legal name");
         const credential = await signInWithEmailAndPassword(browserAuth(), email, values.password);
         idToken = await credential.user.getIdToken(true);
@@ -24,7 +24,7 @@ export function ProfileForm({ name, phone, email }: { name: string; phone: strin
   })}>
     <label className="label">Full legal name<input className="field" {...register("name", { required: true })} /></label>
     <label className="label">Phone<input className="field" {...register("phone")} /></label>
-    <label className="label">Current password (required to change legal name)<input className="field" type="password" autoComplete="current-password" {...register("password")} /></label>
+    {!demo && <label className="label">Current password (required to change legal name)<input className="field" type="password" autoComplete="current-password" {...register("password")} /></label>}
     {message && <p role="status">{message}</p>}
     <button className="btn btn-primary">Save profile</button>
   </form>;

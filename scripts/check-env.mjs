@@ -1,6 +1,12 @@
+const demo = process.env.DEMO_MODE === "true" || (process.env.DEMO_MODE !== "false" && !process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+if (demo) {
+  console.log("Proposal demo enabled: isolated temporary sample data; Firebase is not used.");
+  process.exit(0);
+}
 const required = ["APP_URL", "NEXT_PUBLIC_FIREBASE_API_KEY", "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN", "NEXT_PUBLIC_FIREBASE_PROJECT_ID", "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET", "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID", "NEXT_PUBLIC_FIREBASE_APP_ID", "DATA_ENCRYPTION_KEY"];
 const missing = required.filter(name => !process.env[name]);
 if (missing.length) throw new Error(`Missing environment variables: ${missing.join(", ")}`);
+if (!/^AIza[\w-]{35}$/.test(process.env.NEXT_PUBLIC_FIREBASE_API_KEY.trim())) throw new Error("NEXT_PUBLIC_FIREBASE_API_KEY is malformed. Copy the web app apiKey from Firebase Project settings, then rebuild. For a proposal preview use DEMO_MODE=true.");
 if (Buffer.from(process.env.DATA_ENCRYPTION_KEY, "base64").length !== 32) throw new Error("DATA_ENCRYPTION_KEY must decode to 32 bytes");
 if (!process.env.FIREBASE_SERVICE_ACCOUNT_JSON) throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON is required");
 const account = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);

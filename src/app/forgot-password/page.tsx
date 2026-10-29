@@ -1,1 +1,2 @@
-import { Suspense } from "react";import {AuthForm} from "@/components/auth-form";import {PublicHeader,PublicFooter} from "@/components/public-shell";export default function Page(){return <><PublicHeader/><main className="container section"><Suspense><AuthForm mode="forgot"/></Suspense></main><PublicFooter/></>}
+import { isDemoMode } from "@/lib/demo-config";
+import { Suspense } from "react";import {AuthForm} from "@/components/auth-form";import {PublicHeader,PublicFooter} from "@/components/public-shell";export default function Page(){return <><PublicHeader/><main className="container section"><Suspense><AuthForm demo={isDemoMode()} mode="forgot"/></Suspense></main><PublicFooter/></>}

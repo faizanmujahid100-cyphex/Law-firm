@@ -62,7 +62,7 @@ export async function PATCH(request: NextRequest, { params }: Context) {
       await tx.task.update({ where: { id }, data: { status, assigneeId: body.action === "release" ? null : body.action === "reassign" ? body.assigneeId : undefined } });
       await tx.taskAssignmentHistory.create({ data: { taskId: id, actorId: user.id, fromAssigneeId: task.assigneeId, toAssigneeId: body.action === "release" ? null : body.action === "reassign" ? body.assigneeId : task.assigneeId, action: body.action.toUpperCase(), reason: body.reason } });
       await tx.auditLog.create({ data: { actorId: user.id, action: body.action.toUpperCase(), entity: "Task", entityId: id } });
-      if (body.action === "reassign" && body.assigneeId) await tx.notification.create({ data: { userId: body.assigneeId, title: "Task assigned", body: task.title, href: `/team/tasks/${id}` } });
+      if (body.action === "reassign" && body.assigneeId) await tx.notification.create({ data: { userId: body.assigneeId, title: "Task assigned", body: task.title, href: `/team/dashboard/tasks/${id}` } });
     });
     return NextResponse.json({ ok: true });
   } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid request" }, { status: 400 }); }

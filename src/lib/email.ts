@@ -1,4 +1,6 @@
+import { isDemoMode } from "./demo-config";
 export async function sendEmail(to: string, subject: string, text: string) {
+  if (isDemoMode()) return { sent: false as const, reason: "Emails are not sent in the proposal demo" };
   const endpoint = process.env.EMAIL_API_URL;
   const token = process.env.EMAIL_API_TOKEN;
   if (!endpoint || !token) return { sent: false as const, reason: "Email provider is not configured" };

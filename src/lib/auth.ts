@@ -1,6 +1,8 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { firebaseAuth, firestore } from "@/lib/firebase/admin";
+import { demoAccounts, isDemoMode } from "@/lib/demo-config";
+import { demoCookie, parseDemoSession } from "@/lib/demo-store";
 
 export type Role = "ADMIN" | "TEAM" | "CLIENT";
 export type AppUser = {
@@ -32,6 +34,12 @@ export async function getUser(id: string): Promise<AppUser | null> {
 }
 
 export async function currentUser(): Promise<AppUser | null> {
+  if (isDemoMode()) {
+    const session = parseDemoSession((await cookies()).get(demoCookie)?.value);
+    const account = demoAccounts.find(a => a.role === session?.role);
+    const user = account ? await getUser(account.id) : null;
+    return user?.active ? user : null;
+  }
   const token = (await cookies()).get(cookieName)?.value;
   if (!token) return null;
   try {
@@ -47,7 +55,7 @@ export async function requireUser(roles?: Role[]) {
   return user;
 }
 
-export async function endSession() { (await cookies()).delete(cookieName); }
+export async function endSession() { const jar = await cookies(); jar.delete(cookieName); jar.delete(demoCookie); }
 
 export function hasPermission(user: AppUser, permission: string) {
   return user.role === "ADMIN" || (user.role === "TEAM" && !!user.teamProfile?.permissions.includes(permission));

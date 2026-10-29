@@ -2,7 +2,19 @@
 
 A Next.js 16 legal services application for a Pakistani law office. The app uses **Firebase Authentication, Cloud Firestore and private Firebase Storage**. Next.js server routes enforce record-level access with the Firebase Admin SDK. Public signup creates clients; only a controlled script creates the first administrator, and administrators create team members.
 
-## Firebase project setup
+## Proposal demo and login accounts
+
+For a proposal preview, set `DEMO_MODE=true` in `.env.local` or your hosting environment and deploy normally. No Firebase credentials or seed command are needed. With neither a Firebase web API key nor server credentials present, the app also defaults to demo mode. A partially configured Firebase project does not silently switch modes.
+
+The login page displays Administrator, Team member and Client cards. Clicking a card fills the email and password; click **Sign in** to enter its workspace. Accounts are `admin@demo.amanah.test`, `team@demo.amanah.test` and `client@demo.amanah.test`, all using `AmanahDemo2026!`.
+
+Sample services, six applications, tasks, cases, hearings, invoices, payment reports, documents, notifications and public content are created automatically. Demo data is separate from Firebase. Each sign-in starts an isolated temporary workspace; edits reset after an hour, on server restart, or when hosting routes a request to another instance. Demo uploads are limited to 1 MB and emails are not sent. Use fictional information only. This is an explorable proposal preview, not a persistent multi-user demo database.
+
+Run `node scripts/demo-smoke.mjs http://localhost:3000` against a running demo server to check workspace pages, task claims, payment review, application submission, document access and session isolation.
+
+For real accounts, set `DEMO_MODE=false` and complete the Firebase setup below. Set `NEXT_PUBLIC_FIREBASE_API_KEY` to the **web app `apiKey` from Firebase Project settings**, not a service-account private key. All web configuration values must belong to the same project. Run `npm run check:config`, then rebuild/redeploy: Next.js embeds public Firebase values during the build. The configuration check now rejects missing or malformed keys before production builds. Firebase can still reject a well-formed key that has been deleted or restricted; see [Firebase API key troubleshooting](https://firebase.google.com/docs/projects/api-keys).
+
+## Live Firebase project setup
 
 Use project `law-firm-52f3c` or replace the project values in your environment. In the Firebase console:
 

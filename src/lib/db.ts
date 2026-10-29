@@ -79,6 +79,7 @@ async function relation(entity: Entity, record: any, key: string, args?: any): P
 async function matches(entity: Entity, record: any, where?: Record<string, any>): Promise<boolean> {
   if (!where) return true;
   for (const [key, expected] of Object.entries(where)) {
+    if (expected === undefined) continue;
     if (key === "OR") { if (!(await Promise.all(expected.map((x: any) => matches(entity, record, x)))).some(Boolean)) return false; continue; }
     if (key === "AND") { if (!(await Promise.all(expected.map((x: any) => matches(entity, record, x)))).every(Boolean)) return false; continue; }
     if (relations[entity]?.[key] || (entity === "teamProfile" && key === "user")) {
